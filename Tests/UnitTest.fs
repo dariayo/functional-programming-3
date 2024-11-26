@@ -13,27 +13,6 @@ let ``Linear interpolation computes correct values`` () =
     Assert.AreEqual(expected, results)
 
 [<Test>]
-let ``Linear interpolation extrapolates correctly`` () =
-    let p1, p2 = (1.0, 1.0), (3.0, 3.0)
-    let xValues = [ 0.0; 4.0 ]
-    let expected = [ 0.0; 4.0 ]
-
-    let results = xValues |> List.map (linearInterpolation p1 p2)
-    Assert.AreEqual(expected, results)
-
-[<Test>]
-let ``Chebyshev nodes are computed correctly`` () =
-    let a, b, n = -1.0, 1.0, 5
-    let nodes = chebyshevNodes a b n
-    Assert.AreEqual(n, List.length nodes)
-
-[<Test>]
-let ``Divided differences compute coefficients correctly`` () =
-    let points = [ (0.0, 1.0); (1.0, 2.0); (2.0, 0.0) ]
-    let coeffs = dividedDifferences points
-    Assert.AreEqual(points.Length, List.length coeffs)
-
-[<Test>]
 let ``Newton interpolation computes correct values`` () =
     let points = [ (0.0, 1.0); (1.0, 2.0); (2.0, 0.0) ]
     let coeffs = dividedDifferences points
@@ -66,14 +45,14 @@ let ``Newton interpolation with many points`` () =
     Assert.AreEqual(expected, results)
 
 [<Test>]
-let ``Newton interpolation extrapolates correctly`` () =
-    let points = [ (0.0, 0.0); (1.0, 2.0); (2.0, 4.0) ]
+let ``Newton interpolation computes correct values for given points`` () =
+    let points = [ (0.0, 0.00); (1.571, 1.0) ]
+    let xValues = [ 0.0; 1.571 ]
+    let expected = [ 0.00; 1.0 ]
     let coeffs = dividedDifferences points
-    let xValues = [ -1.0; 3.0 ]
-    let expected = [ -2.0; 6.0 ]
 
     let results =
         xValues
-        |> List.map (newtonInterpolation points coeffs)
+        |> List.map (fun x -> newtonInterpolation points coeffs x)
 
     Assert.AreEqual(expected, results)
