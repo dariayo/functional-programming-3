@@ -41,8 +41,5 @@ jobs:
           dotnet tool install -g fantomas-tool
           fantomas ./*.fs 
         
-      - name: Run project
-        run: dotnet run --project ./
-        
       - name: Tests
         run: dotnet test --logger "console;verbosity=detailed" ./Tests
