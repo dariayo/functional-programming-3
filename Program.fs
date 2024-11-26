@@ -49,7 +49,7 @@ let chebyshevNodes (a: float) (b: float) (n: int) =
 
 let rec processInput (step: int) (window: (float * float) list) (interpolationType: string) (samplingRate: float) =
     match Console.ReadLine() with
-    | null -> () // EOF
+    | null -> ()
     | line ->
         let point = parseInputLine line
         printfn "Ввод %d-й точки (формат X Y): %A" step point
@@ -63,7 +63,6 @@ let rec processInput (step: int) (window: (float * float) list) (interpolationTy
             let rangeStart = x1
             let rangeEnd = x2 + samplingRate
 
-            // Линейная интерполяция
             if interpolationType = "linear"
                || interpolationType = "both" then
                 printfn "Линейная интерполяция:"
@@ -76,7 +75,6 @@ let rec processInput (step: int) (window: (float * float) list) (interpolationTy
                 results
                 |> List.iter (fun (x, y) -> printf "%.2f\t%.2f\n" x y)
 
-            // Интерполяция методом Чебышёва
             if interpolationType = "chebyshev"
                || interpolationType = "both" then
                 printfn "Интерполяция методом Ньютона с использованием полиномов Чебышева:"
@@ -106,6 +104,9 @@ let main (args: string []) =
     if
         args.Length < 2
         || not (List.exists (fun x -> x = args.[1]) interpolationTypes)
+    then
+        printfn "Ошибка: Укажите тип интерполяции ('linear', 'chebyshev' или 'both')."
+        Environment.Exit(1)
 
     let interpolationType = args.[1]
 
