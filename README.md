@@ -76,17 +76,20 @@ let linearInterpolation (p1: float * float) (p2: float * float) (x: float) =
     y1 + (y2 - y1) * (x - x1) / (x2 - x1)
 
 
-if interpolationType = "linear"
-               || interpolationType = "both" then
-                printfn "Линейная интерполяция:"
+let linear (points: (float * float) list) (step: float) =
+    if List.length points >= 2 then
+        let (x1, y1), (x2, y2) = List.head points, List.tail points |> List.head
+        let rangeStart = x1
+        let rangeEnd = x2 + step
 
-                let results =
-                    generateIntermediatePoints rangeStart rangeEnd samplingRate
-                    |> Seq.map (fun x -> (x, linearInterpolation (x1, y1) (x2, y2) x))
-                    |> Seq.toList
+        let results =
+            generateIntermediatePoints rangeStart rangeEnd step
+            |> Seq.map (fun x -> (x, linearInterpolation (x1, y1) (x2, y2) x))
+            |> Seq.toList
 
-                results
-                |> List.iter (fun (x, y) -> printf "%.2f\t%.2f\n" x y)
+        results
+    else
+        []
 ```
 
 ## Ввод / вывод программы
