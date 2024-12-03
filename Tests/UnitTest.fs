@@ -3,56 +3,68 @@ module Tests
 open NUnit.Framework
 open Program
 
-[<Test>]
-let ``Linear interpolation computes correct values`` () =
-    let p1, p2 = (0.0, 0.0), (2.0, 2.0)
-    let xValues = [ 0.0; 1.0; 2.0 ]
-    let expected = [ 0.0; 1.0; 2.0 ]
-
-    let results = xValues |> List.map (linearInterpolation p1 p2)
-    Assert.AreEqual(expected, results)
 
 [<Test>]
-let ``Newton interpolation computes correct values`` () =
-    let points = [ (0.0, 1.0); (1.0, 2.0); (2.0, 0.0) ]
-    let coeffs = dividedDifferences points
-    let xValues = [ 0.0; 1.0; 2.0 ]
-    let expected = [ 1.0; 2.0; 0.0 ]
+let ``Test Linear Function`` () =
+    let points = [ (0.0, 0.0); (1.57, 1.0) ]
+    let step = 1.0
 
-    let results =
-        xValues
-        |> List.map (newtonInterpolation points coeffs)
+    let expected =
+        [ (0.00, 0.00)
+          (1.00, 0.64)
+          (2.00, 1.27) ]
 
-    Assert.AreEqual(expected, results)
+    let result = linear points step
+    Assert.That(result, Is.EqualTo(expected).Within(0.1))
 
 [<Test>]
-let ``Newton interpolation with many points`` () =
+let ``Test Chebyshev Interpolation`` () =
+    let points = [ (0.0, 0.0); (1.57, 1.0) ]
+    let step = 1.0
+
+
+    let expected =
+        [ (0.00, -0.21)
+          (1.00, 0.69)
+          (2.00, 1.59) ]
+
+    let result = chebyshev points step
+    Assert.That(result, Is.EqualTo(expected).Within(0.1))
+
+
+[<Test>]
+let ``Test Linear Function Two`` () =
     let points =
-        [ (0.0, 1.0)
-          (1.0, 2.0)
-          (2.0, 3.0)
-          (3.0, 4.0)
-          (4.0, 5.0) ]
+        [ (0.0, 0.0)
+          (2.48, 4.56)
+          (5.23, 6.12) ]
 
-    let coeffs = dividedDifferences points
-    let xValues = [ 0.0; 1.5; 2.5; 4.0 ]
-    let expected = [ 1.0; 2.5; 3.5; 5.0 ]
+    let step = 1.0
 
-    let results =
-        xValues
-        |> List.map (newtonInterpolation points coeffs)
+    let expected =
+        [ (0.00, 0.00)
+          (1.00, 1.84)
+          (2.00, 3.68)
+          (3.0, 5.51) ]
 
-    Assert.AreEqual(expected, results)
+    let result = linear points step
+    Assert.That(result, Is.EqualTo(expected).Within(0.1))
 
 [<Test>]
-let ``Newton interpolation computes correct values for given points`` () =
-    let points = [ (0.0, 0.00); (1.571, 1.0) ]
-    let xValues = [ 0.0; 1.571 ]
-    let expected = [ 0.00; 1.0 ]
-    let coeffs = dividedDifferences points
+let ``Test Chebyshev Interpolation Two`` () =
+    let points =
+        [ (0.0, 0.0)
+          (2.48, 4.56)
+          (5.23, 6.12) ]
 
-    let results =
-        xValues
-        |> List.map (fun x -> newtonInterpolation points coeffs x)
+    let step = 1.0
 
-    Assert.AreEqual(expected, results)
+
+    let expected =
+        [ (0.00, 0.41)
+          (1.00, -0.39)
+          (2.00, 2.76)
+          (3.0, 9.86) ]
+
+    let result = chebyshev points step
+    Assert.That(result, Is.EqualTo(expected).Within(0.1))

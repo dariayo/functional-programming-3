@@ -47,6 +47,45 @@ let chebyshevNodes (a: float) (b: float) (n: int) =
              * cos ((2.0 * float i + 1.0) / (2.0 * float n) * Math.PI)
              + (b + a)) ]
 
+let linear (points: (float * float) list) (step: float) =
+    if List.length points >= 2 then
+        let (x1, y1), (x2, y2) = List.head points, List.tail points |> List.head
+        let rangeStart = x1
+        let rangeEnd = x2 + step
+
+        let results =
+            generateIntermediatePoints rangeStart rangeEnd step
+            |> Seq.map (fun x -> (x, linearInterpolation (x1, y1) (x2, y2) x))
+            |> Seq.toList
+
+        results
+    else
+        []
+
+let chebyshev (points: (float * float) list) (step: float) =
+    if List.length points >= 2 then
+        let (x1, y1), (x2, y2) = List.head points, List.tail points |> List.head
+        let rangeStart = x1
+        let rangeEnd = x2 + step
+
+        let n = List.length points
+        let nodes = chebyshevNodes x1 x2 n
+
+        let chebyshevPoints =
+            nodes
+            |> List.map (fun x -> (x, snd (List.minBy (fun (x0, _) -> abs (x0 - x)) points)))
+
+        let coeffs = dividedDifferences chebyshevPoints
+
+        let results =
+            generateIntermediatePoints rangeStart rangeEnd step
+            |> Seq.map (fun x -> (x, newtonInterpolation chebyshevPoints coeffs x))
+            |> Seq.toList
+
+        results
+    else
+        []
+
 let rec processInput (step: int) (window: (float * float) list) (interpolationType: string) (samplingRate: float) =
     match Console.ReadLine() with
     | null -> ()
@@ -66,37 +105,21 @@ let rec processInput (step: int) (window: (float * float) list) (interpolationTy
             if interpolationType = "linear"
                || interpolationType = "both" then
                 printfn "Линейная интерполяция:"
+                let result = linear newWindow samplingRate
 
-                let results =
-                    generateIntermediatePoints rangeStart rangeEnd samplingRate
-                    |> Seq.map (fun x -> (x, linearInterpolation (x1, y1) (x2, y2) x))
-                    |> Seq.toList
-
-                results
+                result
                 |> List.iter (fun (x, y) -> printf "%.2f\t%.2f\n" x y)
 
             if interpolationType = "chebyshev"
                || interpolationType = "both" then
                 printfn "Интерполяция методом Ньютона с использованием полиномов Чебышева:"
-                let n = List.length newWindow
-                let nodes = chebyshevNodes x1 x2 n
-
-                let chebyshevPoints =
-                    nodes
-                    |> List.map (fun x -> (x, snd (List.minBy (fun (x0, _) -> abs (x0 - x)) newWindow)))
-
-                let coeffs = dividedDifferences chebyshevPoints
-
-                let results =
-                    generateIntermediatePoints rangeStart rangeEnd samplingRate
-                    |> Seq.map (fun x -> (x, newtonInterpolation chebyshevPoints coeffs x))
-                    |> Seq.toList
+                let results = chebyshev newWindow samplingRate
 
                 results
                 |> List.iter (fun (x, y) -> printf "%.2f\t%.2f\n" x y)
 
-        processInput (step + 1) newWindow interpolationType samplingRate
 
+        processInput (step + 1) newWindow interpolationType samplingRate
 
 let main (args: string []) =
     let interpolationTypes = [ "linear"; "chebyshev"; "both" ]
