@@ -2,6 +2,10 @@ module Program
 
 open System
 
+type State =
+    { InterpolationType: string
+      Points: (float * float) list }
+
 let parseInputLine (line: string) =
     let parts = line.Split([| ' '; '\t'; ';' |], StringSplitOptions.RemoveEmptyEntries)
     (float parts.[0], float parts.[1])
@@ -53,18 +57,15 @@ let linear (points: (float * float) list) (step: float) =
         let rangeStart = x1
         let rangeEnd = x2 + step
 
-        let results =
-            generateIntermediatePoints rangeStart rangeEnd step
-            |> Seq.map (fun x -> (x, linearInterpolation (x1, y1) (x2, y2) x))
-            |> Seq.toList
-
-        results
+        generateIntermediatePoints rangeStart rangeEnd step
+        |> Seq.map (fun x -> (x, linearInterpolation (x1, y1) (x2, y2) x))
+        |> Seq.toList
     else
         []
 
 let chebyshev (points: (float * float) list) (step: float) =
     if List.length points >= 2 then
-        let (x1, y1), (x2, y2) = List.head points, List.tail points |> List.head
+        let (x1, _), (x2, _) = List.head points, List.tail points |> List.head
         let rangeStart = x1
         let rangeEnd = x2 + step
 
@@ -77,74 +78,78 @@ let chebyshev (points: (float * float) list) (step: float) =
 
         let coeffs = dividedDifferences chebyshevPoints
 
-        let results =
-            generateIntermediatePoints rangeStart rangeEnd step
-            |> Seq.map (fun x -> (x, newtonInterpolation chebyshevPoints coeffs x))
-            |> Seq.toList
-
-        results
+        generateIntermediatePoints rangeStart rangeEnd step
+        |> Seq.map (fun x -> (x, newtonInterpolation chebyshevPoints coeffs x))
+        |> Seq.toList
     else
         []
 
-let rec processInput (step: int) (window: (float * float) list) (interpolationType: string) (samplingRate: float) =
+let rec processInput (step: float) (states: State list) =
     match Console.ReadLine() with
     | null -> ()
     | line ->
         let point = parseInputLine line
-        printfn "Ввод %d-й точки (формат X Y): %A" step point
+        printfn "Ввод точки (X Y): %A" point
 
-        let newWindow =
-            (window @ [ point ])
-            |> List.skip (max 0 (List.length window - 1))
+        let updatedStates =
+            states
+            |> List.map (fun state ->
+                let newPoints =
+                    (state.Points @ [ point ])
+                    |> List.skip (max 0 (List.length state.Points - 1))
 
-        if List.length newWindow >= 2 then
-            let (x1, y1), (x2, y2) = List.head newWindow, List.tail newWindow |> List.head
-            let rangeStart = x1
-            let rangeEnd = x2 + samplingRate
+                { state with Points = newPoints })
 
-            if interpolationType = "linear"
-               || interpolationType = "both" then
-                printfn "Линейная интерполяция:"
-                let result = linear newWindow samplingRate
+        updatedStates
+        |> List.iter (fun state ->
+            let interpolationFunctions =
+                match state.InterpolationType with
+                | "linear" -> [ ("Линейная интерполяция", linear) ]
+                | "newton" -> [ ("Интерполяция методом Ньютона с использованием полиномов Чебышева", chebyshev) ]
+                | "both" ->
+                    [ ("Линейная интерполяция", linear)
+                      ("Интерполяция методом Ньютона с использованием полиномов Чебышева", chebyshev) ]
+                | _ -> []
 
-                result
-                |> List.iter (fun (x, y) -> printf "%.2f\t%.2f\n" x y)
-
-            if interpolationType = "chebyshev"
-               || interpolationType = "both" then
-                printfn "Интерполяция методом Ньютона с использованием полиномов Чебышева:"
-                let results = chebyshev newWindow samplingRate
+            interpolationFunctions
+            |> List.iter (fun (name, interpFunc) ->
+                printfn "%s:" name
+                let results = interpFunc state.Points step
 
                 results
-                |> List.iter (fun (x, y) -> printf "%.2f\t%.2f\n" x y)
+                |> List.iter (fun (x, y) -> printf "%.2f\t%.2f\n" x y)))
 
+        processInput step updatedStates
 
-        processInput (step + 1) newWindow interpolationType samplingRate
 
 let main (args: string []) =
-    let interpolationTypes = [ "linear"; "chebyshev"; "both" ]
-
-    if
-        args.Length < 2
-        || not (List.exists (fun x -> x = args.[1]) interpolationTypes)
-    then
-        printfn "Ошибка: Укажите тип интерполяции ('linear', 'chebyshev' или 'both')."
+    match args |> Array.tryItem 1 with
+    | None ->
+        printfn "Ошибка: Укажите типы интерполяции ('linear', 'newton', 'both')"
         Environment.Exit(1)
+    | Some interpolationArg ->
+        let interpolationTypes = interpolationArg.Split(',')
 
-    let interpolationType = args.[1]
-
-    let samplingRate =
-        if args.Length > 2 then
-            match System.Double.TryParse(args.[2]) with
-            | true, value -> value
-            | false, _ ->
-                printfn "Ошибка: '%s' не является корректным шагом" args.[2]
+        let step =
+            args
+            |> Array.tryItem 2
+            |> Option.bind (fun s ->
+                if Double.TryParse(s) |> fst then
+                    Some(Double.Parse(s))
+                else
+                    None)
+            |> Option.defaultWith (fun () ->
+                printfn "Ошибка: Укажите корректный шаг"
                 Environment.Exit(1)
-                0.0
-        else
-            1.0
+                0.0)
 
-    printfn "Ввод первых двух точек (X Y через пробел):"
-    processInput 1 [] interpolationType samplingRate
+        let initialStates =
+            interpolationTypes
+            |> Array.map (fun t -> { InterpolationType = t; Points = [] })
+            |> List.ofArray
+
+        printfn "Введите точки (X Y через пробел):"
+        processInput step initialStates
+
 
 main (Environment.GetCommandLineArgs())
