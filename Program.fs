@@ -52,7 +52,8 @@ let chebyshevNodes (a: float) (b: float) (n: int) =
              + (b + a)) ]
 
 let linear (points: (float * float) list) (step: float) =
-    if List.length points >= 2 then
+    match List.length points with
+    | n when n >= 2 ->
         let (x1, y1), (x2, y2) = List.head points, List.tail points |> List.head
         let rangeStart = x1
         let rangeEnd = x2 + step
@@ -60,11 +61,11 @@ let linear (points: (float * float) list) (step: float) =
         generateIntermediatePoints rangeStart rangeEnd step
         |> Seq.map (fun x -> (x, linearInterpolation (x1, y1) (x2, y2) x))
         |> Seq.toList
-    else
-        []
+    | _ -> []
 
 let chebyshev (points: (float * float) list) (step: float) =
-    if List.length points >= 2 then
+    match List.length points with
+    | n when n >= 2 ->
         let (x1, _), (x2, _) = List.head points, List.tail points |> List.head
         let rangeStart = x1
         let rangeEnd = x2 + step
@@ -81,8 +82,7 @@ let chebyshev (points: (float * float) list) (step: float) =
         generateIntermediatePoints rangeStart rangeEnd step
         |> Seq.map (fun x -> (x, newtonInterpolation chebyshevPoints coeffs x))
         |> Seq.toList
-    else
-        []
+    | _ -> []
 
 let rec processInput (step: float) (states: State list) =
     match Console.ReadLine() with
