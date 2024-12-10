@@ -4,6 +4,10 @@ open System
 
 type State = { Points: (float * float) list }
 
+type InterpolationFunction = (float * float) list -> float -> (float * float) list * (float * float) list
+
+type InterpolationState = string * State * InterpolationFunction
+
 let parseInputLine (line: string) =
     let parts = line.Split([| ' '; '\t'; ';' |], StringSplitOptions.RemoveEmptyEntries)
     (float parts.[0], float parts.[1])
@@ -88,7 +92,7 @@ let chebyshev (points: (float * float) list) (step: float) =
         (List.tail points, results)
     | _ -> (points, [])
 
-let rec processInput (step: float) (states: (string * State) list) =
+let rec processInput (step: float) (states: InterpolationState list) =
     match Console.ReadLine() with
     | null -> ()
     | line ->
@@ -97,24 +101,18 @@ let rec processInput (step: float) (states: (string * State) list) =
 
         let updatedStates =
             states
-            |> List.map (fun (interpolationType, state) ->
+            |> List.map (fun (interpolationType, state, interpolate) ->
                 let newPoints = state.Points @ [ point ]
-
-                let updatedPoints, results =
-                    match interpolationType with
-                    | "linear" -> linear newPoints step
-                    | "newton" -> chebyshev newPoints step
-                    | _ -> (newPoints, [])
+                let updatedPoints, results = interpolate newPoints step
 
                 printfn "%A" interpolationType
 
                 results
                 |> List.iter (fun (x, y) -> printf "%.2f\t%.2f\t\n" x y)
 
-                (interpolationType, { state with Points = updatedPoints }))
+                (interpolationType, { state with Points = updatedPoints }, interpolate))
 
         processInput step updatedStates
-
 
 let main (args: string []) =
     let interpolationArg = args.[1]
@@ -122,13 +120,18 @@ let main (args: string []) =
 
     let step = Double.Parse(args.[2])
 
+    let chooseInterpolation interpolationType =
+        match interpolationType with
+        | "linear" -> linear
+        | "newton" -> chebyshev
+        | _ -> (fun points step -> (points, []))
+
     let initialStates =
         interpolationTypes
-        |> Array.map (fun t -> (t, { Points = [] }))
+        |> Array.map (fun t -> (t, { Points = [] }, chooseInterpolation t))
         |> List.ofArray
 
     printfn "Введите точки (X Y через пробел):"
     processInput step initialStates
-
 
 main (Environment.GetCommandLineArgs())
